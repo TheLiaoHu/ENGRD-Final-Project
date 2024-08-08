@@ -1,0 +1,450 @@
+---
+title: "EDA Codebook"
+author: "Sahithi R. Gangaram, Sangavi Manickavel, Tiger Liao"
+date: "2024-07-22"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+---
+title: "EDA Codebook"
+author: "Sahithi R. Gangaram, Sangavi Manickavel, Tiger Liao"
+date: "2024-07-22"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+### Introduction
+
+This code notebook presents an exploratory data analysis (EDA) on the National Mental Health Services Survey (N-MHSS) data from 2010. The dataset, obtained from the Substance Abuse and Mental Health Services Administration (SAMHSA), provides comprehensive information about mental health treatment facilities across the United States. This analysis aims to investigate geographical disparities in access to mental health treatment facilities and the distribution of different types of facilities, such as non-profit, public, and outpatient centers. Additionally, the study examines whether there are differences in the utilization of mental health services based on the type of facility.
+
+By understanding these patterns, the analysis seeks to identify areas with limited access to mental health services and potential disparities in service utilization. These insights can inform policy and resource allocation decisions, ultimately contributing to a more equitable mental health care system. The motivation behind this analysis is driven by the critical need to ensure equitable access to mental health services across the United States. Mental health care is an essential component of public health, and disparities in access can lead to significant differences in health outcomes. By thoroughly examining the data, the study hopes to highlight regions and populations that are underserved, guiding efforts to improve mental health care accessibility and quality.
+
+The N-MHSS dataset was chosen for this analysis due to its comprehensive coverage and detailed information about mental health facilities, services offered, and patient demographics. The timing of this analysis is particularly relevant given the increasing recognition of mental health issues and the need for robust data to inform policy decisions. This study aims not only to fulfill an academic requirement but also to contribute to the broader understanding and improvement of mental health care infrastructure in the US.
+
+## Exploratory Objectives and Their Formulation
+
+# Objective 1: Which states have the most and fewest mental health treatment facilities?
+
+**Formulation and Motivation:**
+The motivation behind this question is to identify geographical disparities in the availability of mental health treatment facilities. By understanding which states have the most and fewest facilities, we can identify regions that may need increased resources and support for mental health services. This insight can inform policy decisions and resource allocation to ensure equitable access to mental health care across the United States.
+
+# Objective 2: What are the most common mental health services offered across different states?
+
+**Formulation and Motivation:**
+This question aims to identify the core services that mental health facilities provide and understand their distribution across states. Knowing the most common services helps in evaluating the comprehensiveness of mental health care provided. It also allows us to identify gaps in service provision, enabling stakeholders to address unmet needs and enhance the overall quality of mental health care.
+
+# Objective 3: What are the differences in the average number of male and female outpatients treated at mental health facilities, and how do these numbers vary by state?
+
+**Formulation and Motivation:**
+Exploring gender differences in outpatient treatment helps us understand whether there are disparities in access to mental health care between men and women. By examining these differences on a state level, we can identify states where these disparities are most pronounced. This information can guide targeted interventions to ensure that both men and women have equitable access to mental health services.
+
+# Objective 4: How many facilities offer specialized programs for different age groups, and what is the distribution of these facilities across states?
+
+**Formulation and Motivation:**
+This question is designed to investigate the availability of age-specific mental health programs, such as those for youth, adults, and seniors. Understanding the distribution of these specialized programs helps in identifying whether certain age groups are underserved. This information is crucial for developing age-appropriate mental health services and ensuring that facilities cater to the unique needs of different age populations.
+
+# Objective 5: What is the most common kind of facility? What kinds of facilities offer the widest variety of services?
+
+**Formulation and Motivation:**
+The goal here is to understand the types of facilities that dominate the mental health care landscape and which ones provide the most comprehensive care. By identifying the most common facility types and those offering the widest range of services, we can evaluate the overall structure and capacity of the mental health care system. This insight can help in optimizing facility types to meet the diverse needs of the population.
+
+
+### Data loading
+We start by loading the necessary libraries and the dataset. This step is crucial for setting up our environment and ensuring we have the data we need for the analysis.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load necessary libraries
+if (!requireNamespace("usmap", quietly = TRUE)) install.packages("usmap") 
+if (!requireNamespace("dplyr", quietly = TRUE)) install.packages("dplyr")
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
+if (!requireNamespace("scales", quietly = TRUE)) install.packages("scales")
+if (!requireNamespace("tidyr", quietly = TRUE)) install.packages("tidyr")
+if (!requireNamespace("plotly", quietly = TRUE)) install.packages("plotly")
+
+library(dplyr)
+library(ggplot2)
+library(usmap)
+library(scales)
+library(tidyr)
+library(plotly)
+
+# Load dataset
+load("/Users/xiemanhui/Desktop/EDA Project/N-MHSS-2010-DS0001-data/N-MHSS-2010-DS0001-data-r.rda")
+
+dataset <- da34945.0001
+
+# View the first few rows of the dataset to understand its structure
+head(dataset)
+
+```
+
+### Data Cleaning
+Before analyzing the data, we need to clean it by renaming and transforming the relevant variables. This ensures that the data is in a consistent format and ready for analysis. We start by extracting variable names and descriptions to understand the dataset better. This helps in identifying what each variable represents and how it can be used in our analysis. We then clean the dataset by renaming and transforming relevant variables. This step is necessary to make the dataset more readable and easier to work with. For instance, we rename cryptic variable names to more descriptive ones, and we also ensure that certain categorical variables are transformed into appropriate formats for analysis.
+
+```{r}
+# Extract variable names and descriptions
+variable_names <- colnames(dataset)
+
+variable_descriptions <- sapply(variable_names, function(var) {
+  attr <- attr(dataset[[var]], "label")
+  if (is.null(attr)) {
+    return("Description not available")
+  } else {
+    return(attr)
+  }
+})
+
+# Create a dataframe with variable names and descriptions
+variables_df <- data.frame(
+  Variable = variable_names,
+  Description = variable_descriptions
+)
+
+# Clean the dataset
+cleaned_dataset <- dataset %>%
+  mutate(state_name = gsub("^[^ ]* ", "", as.character(STFIPS))) %>%
+  rename(
+    state_fips = STFIPS,
+    facility_type = FACILITYTYPE,
+    intake_service = MHINTAKE,
+    diag_eval_service = MHDIAGEVAL,
+    substance_abuse_service = SASERV,
+    mental_health_service = MENTALHTHSERV,
+    male_outpatients = OPSEXTOTM,
+    female_outpatients = OPSEXTOTF,
+    youth_programs = CHILDADOL,
+    adult_programs = ADULTS,
+    senior_programs = SENIORS
+  )
+
+# Define variable descriptions as a named vector
+variable_descriptions <- c(
+  STFIPS = "Census State FIPS codes label",
+  FACILITYTYPE = "Facility type",
+  MHINTAKE = "QA1_1 Facility offers intake services",
+  MHDIAGEVAL = "QA1_2 Facility offers diagnostic evaluation",
+  SASERV = "QA1_4 Facility offers substance abuse treatment services",
+  MENTALHTHSERV = "QA1_5 Facility offers mental health treatment services",
+  OPSEXTOTM = "QB5b_num_mal Male outpatients - Total",
+  OPSEXPERM = "QB5b_per_mal Male outpatients - Percent",
+  OPSEXTOTF = "QB5b_num_fem Female outpatients - Total",
+  OPSEXPERF = "QB5b_per_fem Female outpatients - Percent",
+  CHILDADOL = "QA12_1 Youth accepted at facility",
+  ADULTS = "QA12_2 Adults accepted at facility",
+  SENIORS = "QA12_3 Seniors accepted at facility"
+)
+
+variables_df <- data.frame(
+  Variable = names(variable_descriptions),
+  Description = unname(variable_descriptions)
+)
+
+# Display the dataframe
+knitr::kable(variables_df, caption = "Variables and Descriptions")
+
+```
+
+### Analysis and Visualizations
+To address each objective, we perform a series of analyses and visualizations. Each section below corresponds to one of the objectives outlined in the introduction.
+
+# Number of Facilities by State
+To address the first objective, we visualize the number of mental health facilities by state. This involves counting the number of facilities in each state and creating a bar plot to display this information. This helps us identify which states have the highest and lowest number of facilities, providing insight into geographical disparities in mental health care availability.
+
+```{r}
+# Count the number of facilities by state
+state_facility_counts <- cleaned_dataset %>%
+  count(state_name) %>%
+  rename(num_facilities = n)
+
+# Plot the number of facilities by state
+ggplot(state_facility_counts, aes(x = reorder(state_name, -num_facilities), y = num_facilities)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Number of Mental Health Facilities by State", x = "State", y = "Number of Facilities") +
+  theme_minimal() +
+  theme(axis.text = element_text(size = 7))
+```
+
+# Most Common Mental Health Services
+Next, we analyze the frequency of different mental health services offered across facilities. This requires transforming service columns into numeric format and then summarizing the count of each service. By visualizing this data, we can understand which services are most commonly provided and identify any gaps in service provision.
+```{r}
+# Ensure that the service columns are numeric
+cleaned_dataset <- cleaned_dataset %>%
+  mutate(
+    intake_service = as.numeric(intake_service),
+    diag_eval_service = as.numeric(diag_eval_service),
+    substance_abuse_service = as.numeric(substance_abuse_service),
+    mental_health_service = as.numeric(mental_health_service)
+  )
+
+# Count the occurrences of each service
+services_count <- cleaned_dataset %>%
+  summarise(
+    intake_service = sum(intake_service, na.rm = TRUE),
+    diag_eval_service = sum(diag_eval_service, na.rm = TRUE),
+    substance_abuse_service = sum(substance_abuse_service, na.rm = TRUE),
+    mental_health_service = sum(mental_health_service, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = everything(), names_to = "service", values_to = "count")
+
+# Plot mental health services
+ggplot(services_count, aes(x = reorder(service, -count), y = count, fill = service)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Most Common Mental Health Services Offered", x = "Service", y = "Count of Facilities") +
+  scale_y_continuous(breaks = seq(0, max(services_count$count), by = 5000)) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    plot.title = element_text(size = 16, face = "bold")
+  )
+
+```
+
+# Average Number of Male and Female Outpatients
+To explore gender disparities in mental health care, we calculate the average number of male and female outpatients treated at mental health facilities. We summarize these averages by state and create visualizations to show the differences. This helps in identifying states where gender disparities in outpatient treatment are most pronounced.
+```{r}
+# Convert outpatient variables to numeric
+cleaned_dataset <- cleaned_dataset %>%
+  mutate(
+    male_outpatients = as.numeric(male_outpatients),
+    female_outpatients = as.numeric(female_outpatients)
+  )
+
+# Summarize the average number of male and female outpatients by state
+outpatients_avg <- cleaned_dataset %>%
+  group_by(state_name) %>%
+  summarise(
+    avg_male_outpatients = mean(male_outpatients, na.rm = TRUE),
+    avg_female_outpatients = mean(female_outpatients, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = c(avg_male_outpatients, avg_female_outpatients), names_to = "gender", values_to = "avg_outpatients")
+
+# Plot the average number of male and female outpatients by state
+ggplot(outpatients_avg, aes(x = reorder(state_name, avg_outpatients), y = avg_outpatients, fill = gender)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  facet_wrap(~ gender, scales = "free_y") +
+  labs(
+    title = "Average Number of Male and Female Outpatients Treated by State",
+    x = "State",
+    y = "Average Number of Outpatients",
+    fill = "Gender"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 4),
+    axis.title = element_text(size = 8),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.position = "none"
+  )
+
+```
+
+### Distribution of Specialized Programs
+We analyze the distribution of specialized programs for different age groups across states and visualize the findings on a map. These visualizations provide insight into the availability of specialized programs for different age groups across the United States. By examining these maps, policymakers and healthcare providers can identify states with insufficient specialized programs and work towards improving access to age-specific mental health services.
+
+# Data Preparation
+In this step, we ensure that the relevant columns are converted to numeric values. This conversion is necessary for summing the counts of specialized programs offered across different states. It involves transforming categorical responses (e.g., "Yes" or "No") into numeric format (e.g., 1 for "Yes" and 0 for "No") to facilitate analysis.
+```{r}
+library(dplyr)
+library(tibble)
+library(formattable)
+
+# Ensure the relevant columns are factors and convert them to numeric for summing
+cleaned_dataset <- cleaned_dataset %>%
+  mutate(
+    youth_programs = ifelse(youth_programs == "(1) Yes", 1, 0),
+    adult_programs = ifelse(adult_programs == "(1) Yes", 1, 0),
+    senior_programs = ifelse(senior_programs == "(1) Yes", 1, 0)
+  )
+```
+
+# Summary of Specialized Programs
+Here, we create a summary dataset to count the number of specialized programs offered by each state. This involves grouping the data by state and summarizing the total number of programs for youth, adults, and seniors. This summary helps in understanding the distribution of specialized programs across different states.
+```{r}
+# Create a summary dataset for specialized programs, counting the "yes" values
+specialized_programs <- cleaned_dataset %>%
+  select(state_fips, youth_programs, adult_programs, senior_programs) %>%
+  group_by(state_fips) %>%
+  summarise(
+    youth_programs_count = sum(youth_programs, na.rm = TRUE),
+    adult_programs_count = sum(adult_programs, na.rm = TRUE),
+    senior_programs_count = sum(senior_programs, na.rm = TRUE)
+  )
+
+# Convert the summary dataset to a tibble
+specialized_programs_tibble <- as_tibble(specialized_programs)
+```
+
+# Highlighting Maximum Counts
+To identify states with the highest counts for each type of program, we create a formattable table. This table highlights the states with the maximum counts in bold, making it easier to spot the leaders in providing specialized programs.
+```{r}
+# Find the largest number in each column
+max_youth <- max(specialized_programs_tibble$youth_programs_count, na.rm = TRUE)
+max_adult <- max(specialized_programs_tibble$adult_programs_count, na.rm = TRUE)
+max_senior <- max(specialized_programs_tibble$senior_programs_count, na.rm = TRUE)
+
+# Create a formattable table with the largest number in bold
+formatted_table <- formattable(specialized_programs_tibble, list(
+  youth_programs_count = formatter("span",
+                                   style = x ~ ifelse(x == max_youth, "font-weight: bold;", "font-weight: normal;")),
+  adult_programs_count = formatter("span",
+                                   style = x ~ ifelse(x == max_adult, "font-weight: bold;", "font-weight: normal;")),
+  senior_programs_count = formatter("span",
+                                    style = x ~ ifelse(x == max_senior, "font-weight: bold;", "font-weight: normal;"))
+))
+
+# Print the formatted table
+formatted_table
+```
+
+# Visualization of Specialized Programs
+We then visualize the distribution of these specialized programs across states using maps. This involves converting state FIPS codes to numeric values and preparing state map data. The visualizations help in understanding the geographical distribution of specialized programs.
+```{r}
+# Convert state_fips to numeric
+specialized_programs$state_fips <- as.numeric(gsub("\\D", "", specialized_programs$state_fips))
+
+# Prepare the state map data
+state_map <- map_data("state")
+state_fips <- data.frame(state.abb = state.abb, region = tolower(state.name), state_fips = as.numeric(fips(state.abb)))
+
+# Join the specialized programs data with state map data
+specialized_programs_map <- state_map %>%
+  left_join(state_fips, by = "region") %>%
+  left_join(specialized_programs, by = "state_fips")
+```
+
+# Distribution of Youth Programs
+This visualization shows the distribution of youth programs across states. It uses a color gradient to represent the number of programs, with darker colors indicating higher counts. This map helps identify states with a higher concentration of youth programs.
+```{r}
+# Plot the distribution of youth programs across states
+ggplot(specialized_programs_map, aes(x = long, y = lat, group = group, fill = youth_programs_count)) +
+  geom_polygon(color = "white") +
+  scale_fill_continuous(name = "Youth Programs", low = "white", high = "blue", na.value = "grey50") +
+  labs(title = "Distribution of Youth Programs Across States") +
+  theme_minimal() +
+  theme(axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())
+```
+
+# Distribution of Adult Programs
+Similarly, this visualization depicts the distribution of adult programs across states. By using a green color gradient, it highlights the states with the highest number of adult programs.
+```{r}
+# Plot the distribution of adult programs across states with a darker green
+ggplot(specialized_programs_map, aes(x = long, y = lat, group = group, fill = adult_programs_count)) +
+  geom_polygon(color = "white") +
+  scale_fill_continuous(name = "Adult Programs", low = "white", high = "#006400", na.value = "grey50") +
+  labs(title = "Distribution of Adult Programs Across States") +
+  theme_minimal() +
+  theme(axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())
+```
+
+# Distribution of Senior Programs
+This visualization shows the distribution of senior programs across states using a red color gradient. It helps in identifying the states with the highest number of senior programs.
+```{r}
+# Plot the distribution of senior programs across states
+ggplot(specialized_programs_map, aes(x = long, y = lat, group = group, fill = senior_programs_count)) +
+  geom_polygon(color = "white") +
+  scale_fill_continuous(name = "Senior Programs", low = "white", high = "red", na.value = "grey50") +
+  labs(title = "Distribution of Senior Programs Across States") +
+  theme_minimal() +
+  theme(axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())
+```
+
+
+### Number of Services Offered by Each Facility Type
+Next, we analyze the number of services offered by each type of mental health facility to understand which facility types provide the most comprehensive care. This analysis helps in evaluating the overall structure and capacity of the mental health care system.
+
+# Data Preparation
+In this step, we prepare the data by summarizing the number of services offered by each facility type. This involves selecting the relevant service columns and reshaping the data to facilitate aggregation. By summarizing the count of services provided by each facility type, we can identify which types of facilities offer the most comprehensive range of services.
+```{r}
+# Summarize the number of services offered by each facility type
+services_offered_by_facility <- cleaned_dataset %>%
+  select(facility_type, intake_service, diag_eval_service, substance_abuse_service, mental_health_service) %>%
+  pivot_longer(cols = intake_service:mental_health_service, names_to = "service", values_to = "offered") %>%
+  group_by(facility_type) %>%
+  summarise(num_services_offered = sum(offered, na.rm = TRUE)) %>%
+  arrange(desc(num_services_offered))
+
+```
+
+# Shortening Labels for Better Visualization
+To improve the readability of the plot, we shorten the labels of the facility types. This step ensures that the labels fit well within the visualization and are easy to understand. Shortened labels help in making the plot more concise and visually appealing without losing the essential information.
+```{r}
+# Shorten the facility type labels for better fit
+services_offered_by_facility <- services_offered_by_facility %>%
+  mutate(facility_type = case_when(
+    facility_type == "(5) Outpatient, day treatment or partial hospitalization mental health facility" ~ "Outpatient/Partial Hosp.",
+    facility_type == "(6) Multi-setting (non-hospital) mental health facility" ~ "Multi-setting",
+    facility_type == "(1) Psychiatric Hospital" ~ "Psychiatric Hosp.",
+    facility_type == "(4) Residential treatment center for adults" ~ "Residential (adults)",
+    facility_type == "(3) Residential treatment center for children" ~ "Residential (children)",
+    facility_type == "(2) Separate inpatient psychiatric unit of a general hospital" ~ "Inpatient Unit"
+  ))
+
+```
+
+# Visualization of Services Offered
+We create an interactive bar chart to show the number of services offered by each facility type. This visualization allows us to easily identify which types of facilities offer the most comprehensive care. By converting the ggplot object to a plotly object, we add interactivity, making the plot more engaging and informative for the viewer.
+```{r}
+# Create the ggplot object
+p <- ggplot(services_offered_by_facility, aes(x = reorder(facility_type, -num_services_offered), y = num_services_offered, text = paste("Facility Type: ", facility_type, "<br>Number of Services: ", num_services_offered))) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Number of Services Offered by Each Facility Type", x = "Facility Type", y = "Number of Services Offered") +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 10),
+    legend.position = "none"
+  )
+
+# Convert the ggplot object to a plotly object for interactivity
+p <- ggplotly(p, tooltip = "text")
+
+# Add annotations to explain the importance of the information
+p <- p %>% layout(
+  annotations = list(
+    list(
+      x = 1,
+      y = 1.05,
+      showarrow = FALSE,
+      xref = 'paper',
+      yref = 'paper',
+      xanchor = 'right',
+      yanchor = 'bottom',
+      align = 'left',
+      font = list(size = 12)
+    )
+  )
+)
+
+# Display the interactive plot
+p
+```
+
+### Analysis
+
+The initial visualizations provide a comprehensive overview of the geographical distribution and types of services offered by mental health facilities across different states. The number of mental health facilities varies significantly across states, with California, New York, and Pennsylvania having the highest number of facilities, while states like North Dakota, Delaware, and Hawaii have the fewest. This distribution indicates potential disparities in access to mental health care, suggesting that residents in states with fewer facilities might face challenges in obtaining timely and adequate mental health services.
+
+Common mental health services such as diagnostic evaluation services and intake services are the most commonly offered across facilities, followed by substance abuse services and mental health treatment services. This prevalence suggests that most facilities are equipped to perform initial assessments and evaluations, which are critical for identifying the appropriate treatment plans for patients. The analysis of outpatients treated at mental health facilities reveals notable gender disparities. States like Tennessee, South Carolina, and Arizona have high average numbers of both male and female outpatients, indicating a higher utilization of mental health services in these states.
+
+The distribution of specialized programs for different age groups also varies across states. Youth, adult, and senior programs are unevenly distributed, with states like California and New York offering a higher number of specialized programs, while many states in the Midwest and the South have fewer such programs. This uneven distribution highlights areas that may be underserved and in need of targeted interventions.
+
+In terms of the number of services offered by facility type, outpatient/partial hospitalization facilities provide the highest number of services, indicating their role in offering comprehensive mental health care. Other facility types, such as psychiatric hospitals and residential treatment centers, offer fewer services, which might reflect their specialized focus areas. Understanding these service distributions can help in optimizing the structure and capacity of the mental health care system.
+
+### Looking Forward
+
+The initial analysis suggests several areas for further investigation and action. Addressing geographical disparities is crucial, as policy interventions are needed to address the uneven distribution of mental health facilities and services. States with fewer facilities should be prioritized for resource allocation and support to ensure equitable access to mental health care.
+
+Understanding gender disparities in mental health service utilization requires further research to uncover the underlying causes. This can help in designing targeted interventions to ensure both men and women have equal access to mental health services. Expanding specialized programs for different age groups is essential. States with fewer such programs should be targeted for the development and implementation of youth, adult, and senior mental health services.
+
+Evaluating facility types and services is important to inform decisions about expanding or modifying existing facilities. Outpatient/partial hospitalization facilities, which offer a wide range of services, can serve as a model for developing comprehensive care centers in other facility types. Exploring the intersectionality of age, gender, and race in accessing mental health care can reveal specific barriers faced by different demographic groups. This information is crucial for developing inclusive and effective mental health policies.
+
+Lastly, aligning services with population needs is critical. Assessing whether the prevalence of certain facility focuses, such as substance abuse treatment, aligns with the actual needs of the population can ensure that mental health services are appropriately tailored to address the most pressing issues. By addressing these areas, we can work towards a more equitable and effective mental health care system that meets the diverse needs of the population.
