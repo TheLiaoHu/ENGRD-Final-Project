@@ -52,7 +52,7 @@ This project leverages the N-MHSS 2010 dataset to explore mental health treatmen
 ## Instructions for Getting Started
 1. **Clone the Repository**: Clone this GitHub repository to your local machine.
    ```sh
-   git clone https://github.com/your-repo/mental-health-eda.git
+   git clone https://github.com/TheLiaoHu/ENGRD-Final-Project
    ```
 2. **Set Up R Environment**: Open R or RStudio and set your working directory to the cloned repository.
    ```r
