@@ -65,28 +65,9 @@ This project leverages the N-MHSS 2010 dataset to explore mental health treatmen
    ```
 4. **Open and Run RMD File**: Open the RMD file in RStudio and run all code chunks to reproduce the analysis.
 
-## Directory Structure
-```
-mental-health-eda/
-├── data/
-│   ├── N-MHSS-2010-DS0001-data-r.rda
-│   └── other-data-files/
-├── docs/
-│   └── group3_210909_12252885_Research Project Check.docx
-├── renv/
-│   ├── activate.R
-│   └── library/
-├── results/
-│   └── analysis-output/
-├── src/
-│   └── analysis.Rmd
-├── .gitignore
-├── README.md
-└── renv.lock
-```
 
 ## Contact Info
 For any questions or further information, please contact:
-- Sahithi Gangaram: [email@example.com](mailto:email@example.com)
-- Tiger Liao: [email@example.com](mailto:email@example.com)
-- Sangavi Manickavel: [email@example.com](mailto:email@example.com)
+- Sahithi Gangaram: (gangaramsahithi@gmail.com)
+- Tiger Liao: (tiger.liao@emory.edu)
+- Sangavi Manickavel: (sangavi.raj.manickavel@emory.edu)
